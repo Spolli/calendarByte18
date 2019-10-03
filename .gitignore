@@ -104,3 +104,8 @@ venv.bak/
 .mypy_cache/
 
 client_secret.json
+
+.h
+*.h
+.tcl
+*.tcl
