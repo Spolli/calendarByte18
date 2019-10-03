@@ -5,9 +5,18 @@ import pickle
 from datetime import datetime, timedelta
 
 folder_path = {
-    'csv': './res/cal.csv',
+    'csv': './src/res/cal.csv',
     'secret': './src/auth/client_secret.json'
 }
+
+def isint(x):
+    try:
+        a = float(x)
+        b = int(a)
+    except ValueError:
+        return False
+    else:
+        return a == b
 
 
 def getCredentials():
@@ -19,34 +28,43 @@ def getCredentials():
     credentials = pickle.load(open("token.pkl", "rb"))
     return build("calendar", "v3", credentials=credentials)
 
+def formatDate(dt_str, hour):
+    dt = dt_str[0].split('/')
+    if not isint(hour):
+        h = int(hour.split(',')[0])
+        m = int(hour.split(',')[1])
+        return datetime(int(dt[2]), int(dt[0]), int(dt[1]), h, m, 0, 0)
+    return datetime(int(dt[2]), int(dt[0]), int(dt[1]), int(hour), 0, 0, 0)
+
 
 def main():
     service = getCredentials()
-    result = service.calendarList().list().execute()
+    timezone = 'Europe/Rome'
     with open(folder_path['csv']) as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=',')
+        csv_reader.__next__()
         for row in csv_reader:
             event = {
                 'summary': f'{row[4]}: {row[6]}',
                 'location': row[8],
                 'description': f'Numero modulo: {row[5]}',
                 'start': {
-                    'dateTime': start_time.strftime("%Y-%m-%dT%H:%M:%S"),
+                    'dateTime': formatDate(row, row[2].split('-')[0]),
                     'timeZone': timezone,
                 },
                 'end': {
-                    'dateTime': end_time.strftime("%Y-%m-%dT%H:%M:%S"),
+                    'dateTime': formatDate(row, row[2].split('-')[1]),
                     'timeZone': timezone,
                 },
                 'reminders': {
-                    'useDefault': False,
+                    'useDefault': True,
                     'overrides': [
-                        {'method': 'email', 'minutes': 24 * 60},
                         {'method': 'popup', 'minutes': 10},
                     ],
                 },
             }
-
+            event = service.events().insert(calendarId='primary', body=event).execute()
+            print(f'Event created: {event.get('htmlLink')}')
 
 if __name__ == '__main__':
     main()
