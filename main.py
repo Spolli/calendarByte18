@@ -1,13 +1,27 @@
-import csv
-from apiclient.discovery import build
-from google_auth_oauthlib.flow import InstalledAppFlow
+from __future__ import print_function
+from datetime import datetime
 import pickle
-from datetime import datetime, timedelta
+import os.path
+from googleapiclient.discovery import build
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
+import csv
 
 folder_path = {
     'csv': './src/res/cal.csv',
-    'secret': './src/auth/client_secret.json'
+    'credentials': './src/auth/credentials.json',
+    'token': './src/auth/token.pickle'
 }
+
+
+def formatDate(dt_str, hour):
+    dt = dt_str[0].split('/')
+    if not isint(hour):
+        h = int(hour.split(',')[0])
+        m = int(hour.split(',')[1])
+        return datetime(int(dt[2]), int(dt[0]), int(dt[1]), h, m, 0, 0)
+    return datetime(int(dt[2]), int(dt[0]), int(dt[1]), int(hour), 0, 0, 0)
+
 
 def isint(x):
     try:
@@ -19,27 +33,24 @@ def isint(x):
         return a == b
 
 
-def getCredentials():
-    scopes = ['https://www.googleapis.com/auth/calendar']
-    flow = InstalledAppFlow.from_client_secrets_file(
-        folder_path['secrete'], scopes=scopes)
-    credentials = flow.run_console()
-    pickle.dump(credentials, open("token.pkl", "wb"))
-    credentials = pickle.load(open("token.pkl", "rb"))
-    return build("calendar", "v3", credentials=credentials)
-
-def formatDate(dt_str, hour):
-    dt = dt_str[0].split('/')
-    if not isint(hour):
-        h = int(hour.split(',')[0])
-        m = int(hour.split(',')[1])
-        return datetime(int(dt[2]), int(dt[0]), int(dt[1]), h, m, 0, 0)
-    return datetime(int(dt[2]), int(dt[0]), int(dt[1]), int(hour), 0, 0, 0)
-
-
 def main():
-    service = getCredentials()
-    timezone = 'Europe/Rome'
+    creds = None
+    if os.path.exists('token.pickle'):
+        with open('token.pickle', 'rb') as token:
+            creds = pickle.load(token)
+    # If there are no (valid) credentials available, let the user log in.
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(
+                folder_path['credentials'], SCOPES)
+            creds = flow.run_local_server(port=0)
+        # Save the credentials for the next run
+        with open('token.pickle', 'wb') as token:
+            pickle.dump(creds, token)
+    service = build('calendar', 'v3', credentials=creds)
+    print("Connected")
     with open(folder_path['csv']) as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=',')
         csv_reader.__next__()
@@ -49,22 +60,27 @@ def main():
                 'location': row[8],
                 'description': f'Numero modulo: {row[5]}',
                 'start': {
-                    'dateTime': formatDate(row, row[2].split('-')[0]),
-                    'timeZone': timezone,
+                    'dateTime': formatDate(row, row[2].split('-')[0]).strftime("%Y-%m-%dT%H:%M:%S"),
+                    'timeZone': 'Europe/Rome',
                 },
                 'end': {
-                    'dateTime': formatDate(row, row[2].split('-')[1]),
-                    'timeZone': timezone,
+                    'dateTime': formatDate(row, row[2].split('-')[1]).strftime("%Y-%m-%dT%H:%M:%S"),
+                    'timeZone': 'Europe/Rome',
                 },
                 'reminders': {
-                    'useDefault': True,
+                    'useDefault': False,
                     'overrides': [
-                        {'method': 'popup', 'minutes': 10},
+                        {'method': 'popup', 'minutes': 90},
                     ],
                 },
+                'recurrence': [
+                ],
+                'attendees': [
+                ],
             }
-            event = service.events().insert(calendarId='primary', body=event).execute()
-            print(f'Event created: {event.get('htmlLink')}')
+            created_calendar = service.events().insert(
+                calendarId='primary', body=event).execute()
+
 
 if __name__ == '__main__':
     main()

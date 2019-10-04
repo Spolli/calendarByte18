@@ -106,6 +106,5 @@ venv.bak/
 client_secret.json
 
 .h
-*.h
 .tcl
-*.tcl
+.pickle
