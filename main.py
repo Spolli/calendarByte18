@@ -6,12 +6,25 @@ from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 import csv
+import xlrd
 
 folder_path = {
     'csv': './src/res/cal.csv',
+    'xls': './src/res/*.xlsx',
     'credentials': './src/auth/credentials.json',
     'token': './src/auth/token.pickle'
 }
+
+def csv_from_excel():
+    #if not os.path.exists(folder_path['csv']):
+    wb = xlrd.open_workbook(folder_path['xls'])
+    sh = wb.sheet_by_name('Sheet1')
+    your_csv_file = open(folder_path['csv'], 'wb')
+    wr = csv.writer(your_csv_file, quoting=csv.QUOTE_ALL)
+    for rownum in xrange(sh.nrows):
+        wr.writerow(sh.row_values(rownum))
+
+    your_csv_file.close()
 
 
 def formatDate(dt_str, hour):
