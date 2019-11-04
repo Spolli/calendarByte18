@@ -20,7 +20,10 @@ folder_path = {
     'credentials': './src/auth/credentials.json',
     'token': './src/auth/token.pickle'
 }
-SCOPES = ['https://www.googleapis.com/auth/calendar']
+SCOPES = [
+    'https://www.googleapis.com/auth/calendar', 
+    'https://www.googleapis.com/auth/calendar.events'
+]
 calendar_name = 'byte18'
 #######################################################################
 
@@ -34,9 +37,9 @@ def isint(x):
         return a == b
 
 def xls2csv():
-    xls_file = pd.read_excel(folder_path['xls'])
-    xls_file.to_csv(folder_path['csv'], index=False)
-
+    if not os.path.exists(folder_path['csv']):
+        xls_file = pd.read_excel(folder_path['xls'])
+        xls_file.to_csv(folder_path['csv'], index=False)
 
 def formatDate(dt_str, hour):
     dt = dt_str[0].split('-')
@@ -45,13 +48,11 @@ def formatDate(dt_str, hour):
         m = int(hour.split(',')[1])
         return datetime(int(dt[0]), int(dt[1]), int(dt[2]), h, m, 0, 0)
     return datetime(int(dt[0]), int(dt[1]), int(dt[2]), int(hour), 0, 0, 0)
-    
-
 
 def main():
     creds = None
-    if os.path.exists('token.pickle'):
-        with open('token.pickle', 'rb') as token:
+    if os.path.exists(folder_path['token']):
+        with open(folder_path['token'], 'rb') as token:
             creds = pickle.load(token)
     # If there are no (valid) credentials available, let the user log in.
     if not creds or not creds.valid:
@@ -62,7 +63,7 @@ def main():
                 folder_path['credentials'], SCOPES)
             creds = flow.run_local_server(port=0)
         # Save the credentials for the next run
-        with open('token.pickle', 'wb') as token:
+        with open(folder_path['token'], 'wb') as token:
             pickle.dump(creds, token)
     service = build('calendar', 'v3', credentials=creds)
     print("Connected")
@@ -76,7 +77,7 @@ def main():
         if calendar_list_entry['summary'] == calendar_name:
             calendarID = calendar_list_entry['id']
             print(f'Clearing Event from: {calendarID}')
-            service.calendars().clear(calendarId=calendarID).execute()
+            #service.calendars().clear(calendarId=calendarID).execute()
             break
     
     if not page_token:

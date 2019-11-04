@@ -103,8 +103,10 @@ venv.bak/
 # mypy
 .mypy_cache/
 
-client_secret.json
-
 .h
 .tcl
 .pickle
+
+.vscode/settings.json
+/byte18-calendar
+/src/auth
