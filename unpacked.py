@@ -93,7 +93,7 @@ def main():
         csv_reader.__next__()
         for row in csv_reader:
             event = {
-                'id': 'byte18',
+                #'id': 'byte18',
                 'summary': f'{row[4]}: {row[6]}',
                 'location': row[8],
                 'description': f'Numero modulo: {row[5]}',

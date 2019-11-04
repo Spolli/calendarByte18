@@ -108,5 +108,5 @@ venv.bak/
 .pickle
 
 .vscode/settings.json
-/byte18-calendar
+/byte18*
 /src/auth
